@@ -1,0 +1,21 @@
+[project]
+name = "rockwell-asset-tracker"
+version = "0.1.0"
+description = "Manufacturing asset tracking API for Rockwell Automation"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0,<0.120.0",
+    "uvicorn>=0.30.0,<0.36.0",
+    "aiosqlite>=0.20.0,<0.21.0",
+    "pydantic>=2.0,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9.0",
+    "pytest-asyncio>=0.24.0,<0.26.0",
+    "httpx>=0.27.0,<0.29.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

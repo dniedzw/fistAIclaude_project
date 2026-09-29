@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rockwell Asset Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #CD163F; --red-dark: #A8112F; --red-light: #FEF2F2;
+    --navy: #1B2A4A; --body: #5A6470; --caption: #8A929E;
+    --border: #D8DBDF; --surface: #F6F7F8; --white: #FFFFFF;
+    --green: #22C55E; --yellow: #EAB308; --blue: #3B82F6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Barlow", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--surface); color: var(--body);
+    -webkit-font-smoothing: antialiased;
+  }
+  .label { text-transform: uppercase; font-weight: 700; color: var(--red); font-size: 12px; letter-spacing: 0.08em; }
+
+  /* Top bar */
+  header {
+    background: var(--navy); border-bottom: 3px solid var(--red);
+    display: flex; align-items: center; gap: 24px; padding: 0 24px; height: 64px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand span { color: var(--white); font-weight: 700; font-size: 18px; letter-spacing: -0.01em; white-space: nowrap; }
+  .searchwrap { flex: 1; display: flex; justify-content: center; }
+  .searchwrap .inner { position: relative; width: 100%; max-width: 440px; }
+  .searchwrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); }
+  #search {
+    width: 100%; height: 38px; padding: 0 12px 0 36px; border: 1px solid #2C3D5F;
+    border-radius: 8px; background: #223353; color: var(--white); font-size: 14px; outline: none;
+  }
+  #search::placeholder { color: var(--caption); }
+  .btn-primary {
+    height: 38px; padding: 0 16px; background: var(--red); color: var(--white); border: none;
+    border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .btn-primary:hover { background: var(--red-dark); }
+  .btn-ghost {
+    height: 38px; padding: 0 16px; background: var(--white); color: var(--body);
+    border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .btn-danger {
+    height: 38px; padding: 0 16px; background: var(--white); color: var(--red);
+    border: 1px solid var(--red); border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .btn-danger:hover { background: var(--red-light); }
+
+  /* KPI strip */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 20px 24px 4px; }
+  .kpi { background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; }
+  .kpi .num { font-size: 34px; font-weight: 700; line-height: 1.1; }
+  .kpi .cap { text-transform: uppercase; font-size: 12px; letter-spacing: 0.06em; color: var(--body); margin-top: 4px; }
+
+  /* Layout */
+  .layout { display: flex; gap: 16px; padding: 16px 24px 24px; align-items: flex-start; }
+  aside { width: 240px; flex-shrink: 0; background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  aside .label { margin-bottom: 10px; display: block; }
+  .loc { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 8px 10px; border-radius: 6px; cursor: pointer; border-left: 3px solid transparent; }
+  .loc:hover { background: var(--surface); }
+  .loc.sel { background: var(--red-light); border-left-color: var(--red); }
+  .loc .name { color: var(--navy); font-weight: 600; font-size: 14px; }
+  .loc .name.all { color: var(--navy); }
+  .chip { background: var(--navy); color: var(--white); font-size: 11px; font-weight: 600;
+    padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+
+  main { flex: 1; background: var(--white); border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+  .filterbar { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  select { height: 34px; border: 1px solid var(--border); border-radius: 6px; padding: 0 8px; font-size: 14px; color: var(--navy); background: var(--white); }
+  .count { margin-left: auto; color: var(--caption); font-size: 13px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th { background: var(--navy); color: var(--white); font-weight: 700; text-transform: uppercase;
+    font-size: 11px; letter-spacing: 0.04em; text-align: left; padding: 9px 12px; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--body); }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--surface); }
+  .tag { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; color: var(--navy); font-weight: 600; }
+  .cat { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; font-size: 12px; text-transform: uppercase; color: var(--navy); font-weight: 600; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: var(--surface); border: 1px solid var(--border); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .empty { text-align: center; color: var(--caption); padding: 40px; font-size: 14px; }
+
+  footer { text-align: right; padding: 0 24px 20px; color: var(--caption); font-size: 12px; font-style: italic; }
+
+  /* Overlay: modal + drawer */
+  .overlay { position: fixed; inset: 0; background: rgba(27,42,74,0.35); display: none; z-index: 50; }
+  .overlay.open { display: block; }
+  .modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    background: var(--white); border-radius: 10px; width: 480px; max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px); overflow: auto; padding: 22px; }
+  .drawer { position: absolute; top: 0; right: 0; height: 100%; width: 400px; max-width: calc(100vw - 32px);
+    background: var(--white); overflow: auto; padding: 22px; box-shadow: -2px 0 12px rgba(0,0,0,0.08); }
+  .panel-title { color: var(--navy); font-weight: 700; font-size: 20px; margin: 0 0 16px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--navy); margin-bottom: 5px; }
+  .field input, .field select, .field textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 14px; color: var(--navy); }
+  .field .hint { font-size: 11px; color: var(--caption); margin-top: 4px; }
+  .field input[readonly] { background: var(--surface); color: var(--caption); }
+  .err { color: var(--red); font-size: 13px; font-weight: 600; margin: 4px 0 12px; min-height: 18px; }
+  .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+  .actions .left { margin-right: auto; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg width="30" height="34" viewBox="0 0 30 34" fill="none" aria-hidden="true">
+      <path d="M15 1 L28 6 V17 C28 26 22 31 15 33 C8 31 2 26 2 17 V6 Z" fill="#CD163F"/>
+      <path d="M11 10 h6.5 c2.8 0 4.5 1.6 4.5 4.1 0 1.9-1 3.3-2.7 3.8 L22 24 h-3.6 l-2.4-5.4 H14 V24 h-3 Z M14 12.6 v3.4 h3 c1.2 0 1.9-.6 1.9-1.7 0-1.1-.7-1.7-1.9-1.7 Z" fill="#FFFFFF"/>
+    </svg>
+    <span>Rockwell Asset Tracker</span>
+  </div>
+  <div class="searchwrap"><div class="inner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A929E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+    <input id="search" placeholder="Search by tag or name…" autocomplete="off">
+  </div></div>
+  <button class="btn-primary" id="openAdd">+ Add Asset</button>
+</header>
+
+<section class="kpis">
+  <div class="kpi"><div class="num" id="k-total" style="color:var(--navy)">0</div><div class="cap">Total Assets</div></div>
+  <div class="kpi"><div class="num" id="k-active" style="color:var(--green)">0</div><div class="cap">Active</div></div>
+  <div class="kpi"><div class="num" id="k-maint" style="color:var(--yellow)">0</div><div class="cap">In Maintenance</div></div>
+  <div class="kpi"><div class="num" id="k-retired" style="color:var(--blue)">0</div><div class="cap">Retired</div></div>
+</section>
+
+<div class="layout">
+  <aside>
+    <span class="label">Locations</span>
+    <div id="loclist"></div>
+  </aside>
+
+  <main>
+    <div class="filterbar">
+      <select id="f-status">
+        <option value="">All statuses</option>
+        <option value="active">Active</option>
+        <option value="maintenance">Maintenance</option>
+        <option value="retired">Retired</option>
+      </select>
+      <select id="f-category">
+        <option value="">All categories</option>
+        <option value="plc">PLC</option>
+        <option value="sensor">Sensor</option>
+        <option value="drive">Drive</option>
+        <option value="hmi">HMI</option>
+        <option value="robot">Robot</option>
+      </select>
+      <span class="count" id="count">0 assets</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Asset Tag</th><th>Name</th><th>Category</th><th>Status</th><th>Location</th><th>Installed</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none">No assets match the current filters.</div>
+  </main>
+</div>
+
+<footer>expanding human possibility&reg;</footer>
+
+<!-- Add modal -->
+<div class="overlay" id="addOverlay">
+  <div class="modal">
+    <h2 class="panel-title">Add Asset</h2>
+    <div class="field"><label>Name</label><input id="a-name"></div>
+    <div class="field"><label>Asset Tag</label><input id="a-tag" placeholder="PLC-1042">
+      <div class="hint">2-4 uppercase letters, dash, 4-6 digits (e.g. PLC-1042)</div></div>
+    <div class="field"><label>Category</label>
+      <select id="a-category"><option value="plc">PLC</option><option value="sensor">Sensor</option><option value="drive">Drive</option><option value="hmi">HMI</option><option value="robot">Robot</option></select></div>
+    <div class="field"><label>Status</label>
+      <select id="a-status"><option value="active">Active</option><option value="maintenance">Maintenance</option><option value="retired">Retired</option></select></div>
+    <div class="field"><label>Location</label><select id="a-location"></select></div>
+    <div class="field"><label>Installed Date</label><input id="a-installed" type="date"></div>
+    <div class="field"><label>Notes</label><textarea id="a-notes" rows="2"></textarea></div>
+    <div class="err" id="a-err"></div>
+    <div class="actions">
+      <button class="btn-ghost" id="a-cancel">Cancel</button>
+      <button class="btn-primary" id="a-save">Save Asset</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail drawer -->
+<div class="overlay" id="drawerOverlay">
+  <div class="drawer">
+    <h2 class="panel-title" id="d-title">Asset</h2>
+    <div class="field"><label>Asset Tag</label><input id="d-tag" readonly></div>
+    <div class="field"><label>Name</label><input id="d-name"></div>
+    <div class="field"><label>Category</label>
+      <select id="d-category"><option value="plc">PLC</option><option value="sensor">Sensor</option><option value="drive">Drive</option><option value="hmi">HMI</option><option value="robot">Robot</option></select></div>
+    <div class="field"><label>Status</label>
+      <select id="d-status"><option value="active">Active</option><option value="maintenance">Maintenance</option><option value="retired">Retired</option></select></div>
+    <div class="field"><label>Location</label><select id="d-location"></select></div>
+    <div class="field"><label>Installed Date</label><input id="d-installed" readonly></div>
+    <div class="field"><label>Notes</label><textarea id="d-notes" rows="2"></textarea></div>
+    <div class="err" id="d-err"></div>
+    <div class="actions">
+      <button class="btn-danger left" id="d-delete">Delete</button>
+      <button class="btn-ghost" id="d-close">Close</button>
+      <button class="btn-primary" id="d-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STATUS_COLOR = { active: "var(--green)", maintenance: "var(--yellow)", retired: "var(--blue)" };
+let assets = [];
+let locations = [];
+let locById = {};
+let selectedLoc = "";   // "" = all
+let currentId = null;   // drawer target
+
+const $ = (id) => document.getElementById(id);
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  if (res.status === 204) return null;
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw { status: res.status, body };
+  return body;
+}
+
+function fillLocationSelect(sel, selectedId) {
+  sel.innerHTML = "";
+  const none = document.createElement("option");
+  none.value = ""; none.textContent = "— none —";
+  sel.appendChild(none);
+  for (const l of locations) {
+    const o = document.createElement("option");
+    o.value = String(l.id); o.textContent = l.name;
+    if (selectedId != null && String(selectedId) === String(l.id)) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+function renderLocations() {
+  const box = $("loclist");
+  box.innerHTML = "";
+  const rows = [{ id: "", name: "All Locations", plant_code: "" }].concat(locations);
+  for (const l of rows) {
+    const div = document.createElement("div");
+    div.className = "loc" + (String(l.id) === String(selectedLoc) ? " sel" : "");
+    const name = document.createElement("span");
+    name.className = "name" + (l.id === "" ? " all" : "");
+    name.textContent = l.name;
+    div.appendChild(name);
+    if (l.plant_code) {
+      const chip = document.createElement("span");
+      chip.className = "chip"; chip.textContent = l.plant_code;
+      div.appendChild(chip);
+    }
+    div.onclick = () => { selectedLoc = l.id === "" ? "" : String(l.id); renderLocations(); renderTable(); };
+    box.appendChild(div);
+  }
+}
+
+function renderKpis() {
+  $("k-total").textContent = assets.length;
+  $("k-active").textContent = assets.filter(a => a.status === "active").length;
+  $("k-maint").textContent = assets.filter(a => a.status === "maintenance").length;
+  $("k-retired").textContent = assets.filter(a => a.status === "retired").length;
+}
+
+function filtered() {
+  const q = $("search").value.trim().toLowerCase();
+  const st = $("f-status").value;
+  const cat = $("f-category").value;
+  return assets.filter(a => {
+    if (selectedLoc && String(a.location_id) !== selectedLoc) return false;
+    if (st && a.status !== st) return false;
+    if (cat && a.category !== cat) return false;
+    if (q && !(a.asset_tag.toLowerCase().includes(q) || a.name.toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+function renderTable() {
+  const rows = filtered();
+  const tb = $("rows");
+  tb.innerHTML = "";
+  $("count").textContent = rows.length + (rows.length === 1 ? " asset" : " assets");
+  $("empty").style.display = rows.length ? "none" : "block";
+  for (const a of rows) {
+    const tr = document.createElement("tr");
+    const loc = locById[a.location_id];
+    tr.innerHTML =
+      `<td><span class="tag">${a.asset_tag}</span></td>` +
+      `<td style="color:var(--navy);font-weight:600">${escapeHtml(a.name)}</td>` +
+      `<td><span class="cat">${a.category}</span></td>` +
+      `<td><span class="pill"><span class="dot" style="background:${STATUS_COLOR[a.status] || "var(--caption)"}"></span>${a.status}</span></td>` +
+      `<td>${loc ? escapeHtml(loc.name) : "—"}</td>` +
+      `<td>${a.installed_date || "—"}</td>`;
+    tr.onclick = () => openDrawer(a.id);
+    tb.appendChild(tr);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+async function loadAll() {
+  [locations, assets] = await Promise.all([api("/locations"), api("/assets")]);
+  locById = {}; for (const l of locations) locById[l.id] = l;
+  renderLocations(); renderKpis(); renderTable();
+}
+
+/* Add modal */
+function openAdd() {
+  $("a-name").value = ""; $("a-tag").value = ""; $("a-category").value = "plc";
+  $("a-status").value = "active"; $("a-installed").value = ""; $("a-notes").value = "";
+  $("a-err").textContent = "";
+  fillLocationSelect($("a-location"), null);
+  $("addOverlay").classList.add("open");
+}
+function closeAdd() { $("addOverlay").classList.remove("open"); }
+
+async function saveAdd() {
+  const tag = $("a-tag").value.trim();
+  if (!/^[A-Z]{2,4}-\d{4,6}$/.test(tag)) { $("a-err").textContent = "Asset tag must match XX-NNNN (e.g. PLC-1042)."; return; }
+  const payload = {
+    name: $("a-name").value.trim(),
+    asset_tag: tag,
+    category: $("a-category").value,
+    status: $("a-status").value,
+    location_id: $("a-location").value ? Number($("a-location").value) : null,
+    installed_date: $("a-installed").value || null,
+    notes: $("a-notes").value.trim() || null,
+  };
+  if (!payload.name) { $("a-err").textContent = "Name is required."; return; }
+  try {
+    await api("/assets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    closeAdd(); await loadAll();
+  } catch (e) {
+    $("a-err").textContent = e.status === 409 ? "That asset tag already exists." : "Could not save asset (validation error).";
+  }
+}
+
+/* Drawer */
+function openDrawer(id) {
+  const a = assets.find(x => x.id === id);
+  if (!a) return;
+  currentId = id;
+  $("d-title").textContent = a.name;
+  $("d-tag").value = a.asset_tag;
+  $("d-name").value = a.name;
+  $("d-category").value = a.category;
+  $("d-status").value = a.status;
+  $("d-installed").value = a.installed_date || "—";
+  $("d-notes").value = a.notes || "";
+  $("d-err").textContent = "";
+  fillLocationSelect($("d-location"), a.location_id);
+  $("drawerOverlay").classList.add("open");
+}
+function closeDrawer() { $("drawerOverlay").classList.remove("open"); currentId = null; }
+
+async function saveDrawer() {
+  if (currentId == null) return;
+  const payload = {
+    name: $("d-name").value.trim(),
+    category: $("d-category").value,
+    status: $("d-status").value,
+    location_id: $("d-location").value ? Number($("d-location").value) : null,
+    notes: $("d-notes").value.trim() || null,
+  };
+  try {
+    await api("/assets/" + currentId, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    closeDrawer(); await loadAll();
+  } catch (e) { $("d-err").textContent = "Could not save changes."; }
+}
+
+async function deleteDrawer() {
+  if (currentId == null) return;
+  try {
+    await api("/assets/" + currentId, { method: "DELETE" });
+    closeDrawer(); await loadAll();
+  } catch (e) { $("d-err").textContent = "Could not delete asset."; }
+}
+
+/* Wire events */
+$("openAdd").onclick = openAdd;
+$("a-cancel").onclick = closeAdd;
+$("a-save").onclick = saveAdd;
+$("d-close").onclick = closeDrawer;
+$("d-save").onclick = saveDrawer;
+$("d-delete").onclick = deleteDrawer;
+$("search").oninput = renderTable;
+$("f-status").onchange = renderTable;
+$("f-category").onchange = renderTable;
+for (const ov of [$("addOverlay"), $("drawerOverlay")]) {
+  ov.onclick = (e) => { if (e.target === ov) ov.classList.remove("open"); };
+}
+
+loadAll().catch(() => { $("empty").style.display = "block"; $("empty").textContent = "Failed to load assets from API."; });
+</script>
+</body>
+</html>
