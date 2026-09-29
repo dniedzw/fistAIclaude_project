@@ -28,7 +28,7 @@
 | `src/database.py` | Add `ALTER TABLE assets ADD COLUMN next_service_date TEXT` migration |
 | `src/schemas.py` | Add `next_service_date: Optional[str] = None` to `AssetCreate`, `AssetUpdate`, `AssetOut` |
 | `src/main.py` | Add `next_service_date` to `POST /assets` INSERT |
-| `tests/test_assets.py` | Add 4 new test cases for the new field |
+| `tests/test_assets.py` | Add 5 new test cases for the new field |
 | `src/static/index.html` | KPI card, table column, overdue filter, date fields in forms |
 
 ---
@@ -46,7 +46,7 @@
 
 ---
 
-- [ ] **Step 1: Write 4 failing tests**
+- [ ] **Step 1: Write 5 failing tests**
 
 Append to `tests/test_assets.py`:
 
@@ -99,15 +99,28 @@ async def test_list_assets_includes_next_service_date(client):
     data = r.json()
     assert len(data) == 1
     assert data[0]["next_service_date"] == "2026-11-01"
+
+
+@pytest.mark.asyncio
+async def test_clear_next_service_date(client):
+    await client.post("/assets", json={
+        "name": "GuardLogix 5580",
+        "asset_tag": "PLC-0050",
+        "category": "plc",
+        "next_service_date": "2026-10-01",
+    })
+    r = await client.put("/assets/1", json={"next_service_date": None})
+    assert r.status_code == 200
+    assert r.json()["next_service_date"] is None
 ```
 
-- [ ] **Step 2: Run tests — confirm 4 failures**
+- [ ] **Step 2: Run tests — confirm 5 failures**
 
 ```
 pytest tests/test_assets.py -v -k "next_service_date"
 ```
 
-Expected: 4 FAILs. `test_create_asset_with_next_service_date` will likely pass the POST (201) but fail on `next_service_date` missing from the response.
+Expected: 5 FAILs. `test_create_asset_with_next_service_date` will likely pass the POST (201) but fail on `next_service_date` missing from the response.
 
 - [ ] **Step 3: Add migration to `src/database.py`**
 
@@ -266,10 +279,16 @@ No other route changes needed — `GET /assets` uses `SELECT *` (picks up new co
 - [ ] **Step 6: Run all tests — confirm they pass**
 
 ```
+pytest tests/test_assets.py -v -k "next_service_date"
+```
+
+Expected: 5 PASSes. Then run the full suite to confirm nothing regressed:
+
+```
 pytest
 ```
 
-Expected: all tests pass, including the 4 new ones. If any fail, check the error message — the most common mistake is a column name typo in the INSERT.
+Expected: all tests pass. If `test_clear_next_service_date` fails with a 422, verify that `AssetUpdate.next_service_date` has no `Field(...)` constraint preventing `None`. If `test_create_asset_with_next_service_date` fails with a 500, check the INSERT column list in `main.py` for a typo.
 
 - [ ] **Step 7: Commit**
 
