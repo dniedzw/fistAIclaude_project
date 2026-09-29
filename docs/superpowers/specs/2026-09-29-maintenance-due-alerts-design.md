@@ -87,17 +87,21 @@ Add one boolean variable: `let overdueOnly = false;`
 ### `filtered()` function
 
 ```js
-const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD local date
+// Use local calendar date, not UTC, to avoid off-by-one for non-UTC timezones
+function localToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 // existing filters ...
 if (overdueOnly) {
-  if (!a.next_service_date || a.next_service_date >= today) return false;
+  if (!a.next_service_date || a.next_service_date >= localToday()) return false;
 }
 ```
 
 ### `renderKpis()`
 
 ```js
-const today = new Date().toISOString().slice(0, 10);
+const today = localToday();
 const overdueCount = assets.filter(a => a.next_service_date && a.next_service_date < today).length;
 $("k-overdue").textContent = overdueCount;
 ```
