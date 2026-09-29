@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.db
+.venv/
+dist/
+*.egg-info/
+.pytest_cache/
+.superpowers/
+docs/pr-pipeline/review-comments.md
+docs/pr-pipeline/review-comments.html
+docs/pr-pipeline/pr-description.md
+docs/pr-pipeline/pr-description.html
+docs/pr-pipeline/review-comments-after.md
+docs/pr-pipeline/review-comments-after.html
+docs/pr-pipeline/deploy-status.md
+docs/pr-pipeline/deploy-status.html
+wiki-html/
