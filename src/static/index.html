@@ -329,7 +329,7 @@ function renderTable() {
       `<td><span class="cat">${a.category}</span></td>` +
       `<td><span class="pill"><span class="dot" style="background:${STATUS_COLOR[a.status] || "var(--caption)"}"></span>${a.status}</span></td>` +
       `<td>${loc ? escapeHtml(loc.name) : "—"}</td>` +
-      `<td>${escapeHtml(a.installed_date) || "—"}</td>` +
+      `<td>${a.installed_date ? escapeHtml(a.installed_date) : "—"}</td>` +
       `<td>${svcCell}</td>`;
     tr.onclick = () => openDrawer(a.id);
     tb.appendChild(tr);
