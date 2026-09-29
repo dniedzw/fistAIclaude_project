@@ -14,8 +14,8 @@ async def bulk_import_assets(payload: BulkImportRequest, db: aiosqlite.Connectio
     try:
         for asset in payload.assets:
             await db.execute(
-                "INSERT INTO assets (name, asset_tag, category, status) VALUES (?, ?, ?, ?)",
-                (asset.name, asset.asset_tag, asset.category, asset.status),
+                "INSERT INTO assets (name, asset_tag, category, status, next_service_date) VALUES (?, ?, ?, ?, ?)",
+                (asset.name, asset.asset_tag, asset.category, asset.status, asset.next_service_date),
             )
             imported += 1
         await db.commit()

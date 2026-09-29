@@ -14,7 +14,7 @@ class AssetCreate(BaseModel):
     status: str = Field(default="active", pattern=r"^(active|maintenance|retired)$")
     location_id: Optional[int] = None
     installed_date: Optional[str] = None
-    next_service_date: Optional[str] = None
+    next_service_date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     notes: Optional[str] = None
 
 class AssetUpdate(BaseModel):
@@ -22,7 +22,7 @@ class AssetUpdate(BaseModel):
     category: Optional[str] = None
     status: Optional[str] = Field(default=None, pattern=r"^(active|maintenance|retired)$")
     location_id: Optional[int] = None
-    next_service_date: Optional[str] = None
+    next_service_date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     notes: Optional[str] = None
 
 class AssetOut(BaseModel):

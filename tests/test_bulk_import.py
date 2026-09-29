@@ -73,3 +73,20 @@ async def test_search_assets_sql_injection_attempt_is_safe(client):
     r = await client.get("/assets/search", params={"q": "' OR '1'='1"})
     assert r.status_code == 200
     assert r.json() == []
+
+
+@pytest.mark.asyncio
+async def test_bulk_import_preserves_next_service_date(client):
+    r = await client.post("/assets/bulk-import", json={"assets": [
+        {
+            "name": "PowerFlex 755",
+            "asset_tag": "DRV-9001",
+            "category": "drive",
+            "next_service_date": "2026-10-15",
+        }
+    ]})
+    assert r.status_code == 201
+
+    assets = (await client.get("/assets")).json()
+    assert len(assets) == 1
+    assert assets[0]["next_service_date"] == "2026-10-15"

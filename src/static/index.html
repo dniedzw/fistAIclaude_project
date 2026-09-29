@@ -321,7 +321,7 @@ function renderTable() {
     const isOverdue = a.next_service_date && a.next_service_date < today;
     if (isOverdue) tr.style.background = "var(--red-light)";
     const svcCell = a.next_service_date
-      ? `${a.next_service_date}${isOverdue ? ' <span style="color:var(--red);font-weight:700;font-size:11px;text-transform:uppercase;margin-left:6px">OVERDUE</span>' : ''}`
+      ? `${escapeHtml(a.next_service_date)}${isOverdue ? ' <span style="color:var(--red);font-weight:700;font-size:11px;text-transform:uppercase;margin-left:6px">OVERDUE</span>' : ''}`
       : "—";
     tr.innerHTML =
       `<td><span class="tag">${a.asset_tag}</span></td>` +
@@ -329,7 +329,7 @@ function renderTable() {
       `<td><span class="cat">${a.category}</span></td>` +
       `<td><span class="pill"><span class="dot" style="background:${STATUS_COLOR[a.status] || "var(--caption)"}"></span>${a.status}</span></td>` +
       `<td>${loc ? escapeHtml(loc.name) : "—"}</td>` +
-      `<td>${a.installed_date || "—"}</td>` +
+      `<td>${escapeHtml(a.installed_date) || "—"}</td>` +
       `<td>${svcCell}</td>`;
     tr.onclick = () => openDrawer(a.id);
     tb.appendChild(tr);
