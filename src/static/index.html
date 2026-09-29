@@ -54,7 +54,7 @@
   .btn-danger:hover { background: var(--red-light); }
 
   /* KPI strip */
-  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 20px 24px 4px; }
+  .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; padding: 20px 24px 4px; }
   .kpi { background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; }
   .kpi .num { font-size: 34px; font-weight: 700; line-height: 1.1; }
   .kpi .cap { text-transform: uppercase; font-size: 12px; letter-spacing: 0.06em; color: var(--body); margin-top: 4px; }
@@ -133,6 +133,10 @@
   <div class="kpi"><div class="num" id="k-active" style="color:var(--green)">0</div><div class="cap">Active</div></div>
   <div class="kpi"><div class="num" id="k-maint" style="color:var(--yellow)">0</div><div class="cap">In Maintenance</div></div>
   <div class="kpi"><div class="num" id="k-retired" style="color:var(--blue)">0</div><div class="cap">Retired</div></div>
+  <div class="kpi" id="k-overdue-card" style="cursor:pointer;border-color:var(--red)">
+    <div class="num" id="k-overdue" style="color:var(--red)">0</div>
+    <div class="cap">Overdue for Service</div>
+  </div>
 </section>
 
 <div class="layout">
@@ -157,11 +161,12 @@
         <option value="hmi">HMI</option>
         <option value="robot">Robot</option>
       </select>
+      <button class="btn-ghost" id="f-overdue">Overdue only</button>
       <span class="count" id="count">0 assets</span>
     </div>
     <table>
       <thead><tr>
-        <th>Asset Tag</th><th>Name</th><th>Category</th><th>Status</th><th>Location</th><th>Installed</th>
+        <th>Asset Tag</th><th>Name</th><th>Category</th><th>Status</th><th>Location</th><th>Installed</th><th>Next Service</th>
       </tr></thead>
       <tbody id="rows"></tbody>
     </table>
@@ -222,6 +227,12 @@ let locations = [];
 let locById = {};
 let selectedLoc = "";   // "" = all
 let currentId = null;   // drawer target
+let overdueOnly = false;
+
+function localToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -272,17 +283,21 @@ function renderKpis() {
   $("k-active").textContent = assets.filter(a => a.status === "active").length;
   $("k-maint").textContent = assets.filter(a => a.status === "maintenance").length;
   $("k-retired").textContent = assets.filter(a => a.status === "retired").length;
+  const today = localToday();
+  $("k-overdue").textContent = assets.filter(a => a.next_service_date && a.next_service_date < today).length;
 }
 
 function filtered() {
   const q = $("search").value.trim().toLowerCase();
   const st = $("f-status").value;
   const cat = $("f-category").value;
+  const today = localToday();
   return assets.filter(a => {
     if (selectedLoc && String(a.location_id) !== selectedLoc) return false;
     if (st && a.status !== st) return false;
     if (cat && a.category !== cat) return false;
     if (q && !(a.asset_tag.toLowerCase().includes(q) || a.name.toLowerCase().includes(q))) return false;
+    if (overdueOnly && (!a.next_service_date || a.next_service_date >= today)) return false;
     return true;
   });
 }
@@ -290,19 +305,26 @@ function filtered() {
 function renderTable() {
   const rows = filtered();
   const tb = $("rows");
+  const today = localToday();
   tb.innerHTML = "";
   $("count").textContent = rows.length + (rows.length === 1 ? " asset" : " assets");
   $("empty").style.display = rows.length ? "none" : "block";
   for (const a of rows) {
     const tr = document.createElement("tr");
     const loc = locById[a.location_id];
+    const isOverdue = a.next_service_date && a.next_service_date < today;
+    if (isOverdue) tr.style.background = "var(--red-light)";
+    const svcCell = a.next_service_date
+      ? `${a.next_service_date}${isOverdue ? ' <span style="color:var(--red);font-weight:700;font-size:11px;text-transform:uppercase;margin-left:6px">OVERDUE</span>' : ''}`
+      : "—";
     tr.innerHTML =
       `<td><span class="tag">${a.asset_tag}</span></td>` +
       `<td style="color:var(--navy);font-weight:600">${escapeHtml(a.name)}</td>` +
       `<td><span class="cat">${a.category}</span></td>` +
       `<td><span class="pill"><span class="dot" style="background:${STATUS_COLOR[a.status] || "var(--caption)"}"></span>${a.status}</span></td>` +
       `<td>${loc ? escapeHtml(loc.name) : "—"}</td>` +
-      `<td>${a.installed_date || "—"}</td>`;
+      `<td>${a.installed_date || "—"}</td>` +
+      `<td>${svcCell}</td>`;
     tr.onclick = () => openDrawer(a.id);
     tb.appendChild(tr);
   }
@@ -403,6 +425,16 @@ $("f-category").onchange = renderTable;
 for (const ov of [$("addOverlay"), $("drawerOverlay")]) {
   ov.onclick = (e) => { if (e.target === ov) ov.classList.remove("open"); };
 }
+
+function setOverdueFilter(on) {
+  overdueOnly = on;
+  $("f-overdue").style.background = on ? "var(--red)" : "";
+  $("f-overdue").style.color = on ? "var(--white)" : "";
+  $("f-overdue").style.borderColor = on ? "var(--red)" : "";
+  renderTable();
+}
+$("f-overdue").onclick = () => setOverdueFilter(!overdueOnly);
+$("k-overdue-card").onclick = () => setOverdueFilter(true);
 
 loadAll().catch(() => { $("empty").style.display = "block"; $("empty").textContent = "Failed to load assets from API."; });
 </script>
