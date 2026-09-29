@@ -189,6 +189,7 @@
       <select id="a-status"><option value="active">Active</option><option value="maintenance">Maintenance</option><option value="retired">Retired</option></select></div>
     <div class="field"><label>Location</label><select id="a-location"></select></div>
     <div class="field"><label>Installed Date</label><input id="a-installed" type="date"></div>
+    <div class="field"><label>Next Service Date</label><input id="a-service" type="date"></div>
     <div class="field"><label>Notes</label><textarea id="a-notes" rows="2"></textarea></div>
     <div class="err" id="a-err"></div>
     <div class="actions">
@@ -210,6 +211,11 @@
       <select id="d-status"><option value="active">Active</option><option value="maintenance">Maintenance</option><option value="retired">Retired</option></select></div>
     <div class="field"><label>Location</label><select id="d-location"></select></div>
     <div class="field"><label>Installed Date</label><input id="d-installed" readonly></div>
+    <div class="field">
+      <label>Next Service Date</label>
+      <input id="d-service" type="date">
+      <div id="d-overdue-badge" style="display:none;color:var(--red);font-size:13px;font-weight:700;margin-top:4px">OVERDUE</div>
+    </div>
     <div class="field"><label>Notes</label><textarea id="d-notes" rows="2"></textarea></div>
     <div class="err" id="d-err"></div>
     <div class="actions">
@@ -343,7 +349,8 @@ async function loadAll() {
 /* Add modal */
 function openAdd() {
   $("a-name").value = ""; $("a-tag").value = ""; $("a-category").value = "plc";
-  $("a-status").value = "active"; $("a-installed").value = ""; $("a-notes").value = "";
+  $("a-status").value = "active"; $("a-installed").value = "";
+  $("a-service").value = ""; $("a-notes").value = "";
   $("a-err").textContent = "";
   fillLocationSelect($("a-location"), null);
   $("addOverlay").classList.add("open");
@@ -360,6 +367,7 @@ async function saveAdd() {
     status: $("a-status").value,
     location_id: $("a-location").value ? Number($("a-location").value) : null,
     installed_date: $("a-installed").value || null,
+    next_service_date: $("a-service").value || null,
     notes: $("a-notes").value.trim() || null,
   };
   if (!payload.name) { $("a-err").textContent = "Name is required."; return; }
@@ -382,6 +390,9 @@ function openDrawer(id) {
   $("d-category").value = a.category;
   $("d-status").value = a.status;
   $("d-installed").value = a.installed_date || "—";
+  $("d-service").value = a.next_service_date || "";
+  const isOverdue = a.next_service_date && a.next_service_date < localToday();
+  $("d-overdue-badge").style.display = isOverdue ? "block" : "none";
   $("d-notes").value = a.notes || "";
   $("d-err").textContent = "";
   fillLocationSelect($("d-location"), a.location_id);
@@ -396,6 +407,7 @@ async function saveDrawer() {
     category: $("d-category").value,
     status: $("d-status").value,
     location_id: $("d-location").value ? Number($("d-location").value) : null,
+    next_service_date: $("d-service").value || null,
     notes: $("d-notes").value.trim() || null,
   };
   try {
